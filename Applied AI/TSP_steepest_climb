@@ -1,0 +1,137 @@
+import matplotlib.pyplot as plt
+import random
+
+def load_matrix(filename):
+    """Load a text file into a 2D array.
+
+    Args:
+        filename (string): Filename in current folder.
+
+    Returns:
+        list: 2D list
+    """
+    # initialise 2D distance list
+    matrix = []
+
+    # open file
+    with open(filename, 'r', encoding='utf8') as f:
+        for line in f:
+            line = line.strip() # gets rid of whitespace and n/ 
+            # for every line in the .txt file the values are converted to integers and added to the 2D list, the commas are neglected
+            matrix.append(list(int(x) for x in line.split(','))) 
+    return matrix
+
+def path_cost(matrix, solution):
+    """Calculate the cost of a solution.
+
+    Args:
+        matrix (list): Edge cost matrix
+        solution (list): Node list
+
+    Returns:
+        int: Cost of traversing the solution nodes.
+    """
+    # initialise cost
+    cost = 0
+
+    # finds the distance between each node in the list
+    for i in range(0, len(solution)):
+        cost += matrix[solution[i]][solution[i - 1]]
+    
+    return cost
+
+def find_best_neighbour(matrix, solution):
+    """Find the best solution from the neighbourhood.
+
+    Args:
+        matrix (list): Edge cost matrix
+        solution (list): Node list
+
+    Returns:
+        list: Neighbour with two adjacent elements swapped.
+    """
+     # initialise the list of neighbours to current solution
+    neighbourhood = []
+
+    for i in range(0, len(solution)-1):
+        neighbour = solution.copy()
+        # iteratively swap the values of the copy and add to the neighbourhood list
+        neighbour[i] = solution[i+1]
+        neighbour[i+1] = solution[i]
+
+        neighbourhood.append(neighbour)
+
+    # initialise the best solution and it's cost
+    best_neighbour = neighbourhood[0]
+    best_cost = path_cost(matrix, best_neighbour)
+
+    # iterate through neighbourhood to discover best solution
+    for neighbour in neighbourhood:
+        current_cost = path_cost(matrix, neighbour)
+
+        if current_cost < best_cost:
+            best_cost = current_cost
+            best_neighbour = neighbour
+
+    return best_neighbour, best_cost
+
+def hill_climbing(matrix):
+    """Implement the steepest ascent hill climbing algorithm.
+
+    Args:
+        matrix (list): Edge cost matrix
+
+    Returns:
+        list: Array of all path costs found.
+    """
+    costs = []
+
+    # intial first solution picked at random
+    path = list(range(len(matrix)))
+    random.shuffle(path)
+
+    num_same_cost = 0 # counts unimproved iterations
+
+    while num_same_cost < 100:
+        cost = path_cost(matrix, path) # the intial cost of the random first solution s_0
+
+        new_path, new_cost = find_best_neighbour(matrix, path) # finds the best solution
+
+        # compare best solution with current solution
+        if new_cost < cost:
+            cost = new_cost
+            path = new_path
+        else:
+            num_same_cost += 1 # if solution not better then increase the counter
+
+        costs.append(cost)
+
+    return costs
+
+
+matrix = load_matrix('TSP_Matrix.txt')
+
+plt.figure()
+
+tot_final_costs = []
+for i in range(10):
+    path_costs = hill_climbing(matrix)
+
+    total_iterations = len(path_costs)
+    final_cost = path_costs[-1] # the final iteration will always be the best solution
+    tot_final_costs.append(final_cost)
+
+    print(f"Run {i+1}: path cost = {final_cost}, iterations = {total_iterations}")
+
+    plt.plot(range(len(path_costs)), path_costs, label=f"Run {i+1}")
+    plt.xlabel("Iterations")
+    plt.ylabel("Cost")
+    plt.legend()
+
+average_cost = sum(tot_final_costs)/len(tot_final_costs)
+min_cost_index = tot_final_costs.index(min(tot_final_costs)) + 1
+
+print(f"The average cost over the runs is {average_cost}")
+print(f"The best run was Run {min_cost_index} = {min(tot_final_costs)}")
+
+plt.show()
